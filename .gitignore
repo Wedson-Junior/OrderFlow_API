@@ -1,0 +1,9 @@
+# python
+__pycache__/
+.venv/
+venv/
+
+# evns
+.env
+.env.example
+.env.local
