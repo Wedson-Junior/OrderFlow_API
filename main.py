@@ -2,10 +2,17 @@
 
 from fastapi import FastAPI
 from database import engine, Base
-from routes.auth import auth_router
-from routes.order import order_router
+from passlib.context import CryptContext
+from dotenv import load_dotenv
+import os
+
+load_dotenv()
+
+SECRET_KEY = os.getenv('SECRET_KEY')
 
 Base.metadata.create_all(bind=engine)
+
+bcrypt_context = CryptContext(schemes=['bcrypt'], deprecated='auto', bcrypt__rounds=12,bcrypt__truncate_error=False)
 
 app = FastAPI(
     title="OrderFlow API",
@@ -14,6 +21,9 @@ app = FastAPI(
 )
 
 # Inclui as rotas
+from routes.auth import auth_router
+from routes.order import order_router
+
 app.include_router(auth_router)
 app.include_router(order_router)
 
