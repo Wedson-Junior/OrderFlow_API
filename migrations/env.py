@@ -47,7 +47,7 @@ def run_migrations_online() -> None:
         configuration,
         prefix="sqlalchemy.",
         poolclass=pool.NullPool,
-        url=url,                    # <-- Correção principal
+        url=url,                   
     )
 
     with connectable.connect() as connection:
