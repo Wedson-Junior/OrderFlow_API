@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, Boolean, Float ,ForeignKey
+from sqlalchemy import Column, Integer, String, Float ,ForeignKey
 from sqlalchemy_utils import ChoiceType
 from .base import Base
 
@@ -16,7 +16,7 @@ class Orders(Base):
     user_id  = Column(Integer, ForeignKey('users.id'))
     price    = Column(Float)
 
-    def __init__(self, user_id, price, status="PENDENTE"):
+    def __init__(self, user_id, price, status="PENDING"):
         self.status = status
         self.user_id = user_id
         self.price = price

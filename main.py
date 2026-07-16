@@ -16,7 +16,7 @@ bcrypt_context = CryptContext(schemes=['bcrypt'], deprecated='auto', bcrypt__rou
 
 app = FastAPI(
     title="OrderFlow API",
-    description="API para gerenciamento de pedidos",
+    description="API for order management",
     version="1.0.0"
 )
 
@@ -31,6 +31,6 @@ app.include_router(order_router)
 @app.get("/")
 def root():
     return {
-        "message": "OrderFlow API está funcionando!",
+        "message": "OrderFlow API is working!",
         "docs": "/docs"
     }

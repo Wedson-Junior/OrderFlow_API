@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, Boolean, Float ,ForeignKey
+from sqlalchemy import Column, Integer, Float ,ForeignKey
 from .base import Base
 
 class OrderItems(Base):

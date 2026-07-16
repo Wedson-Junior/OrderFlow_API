@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, Boolean, Float ,ForeignKey
+from sqlalchemy import Column, Integer, String, Boolean
 from sqlalchemy_utils import ChoiceType
 from .base import Base
 
@@ -6,8 +6,8 @@ class Items(Base):
     __tablename__ = 'items'
 
     ITEMS_CATEGORY = (
-        ('DOCE', 'DOCE'),
-        ('SALGADO', 'SALGADO')
+        ('SWEET', 'SWEET'),
+        ('SALTY', 'SALTY')
         )
 
     id = Column(Integer, autoincrement=True, primary_key=True)
