@@ -3,9 +3,18 @@ from sqlalchemy.orm import Session
 from models.users import Users
 from database import get_db
 from main import bcrypt_context
-from schemas.users import Users_schemas 
+from schemas.users import Users_schemas, Login_schemas
 
 auth_router = APIRouter(prefix="/auth", tags=["auth"])
+
+def autenticate_user(email:str, password:str, session: Session):
+    user = session.query(Users).filter(Users.email==email).first()
+    if not user:
+        return False
+    elif not bcrypt_context.verify(password, user.password):
+        return False
+    return user
+
 
 @auth_router.get('/')
 async def home():
@@ -30,5 +39,13 @@ async def create_account(userschema: Users_schemas, session: Session = Depends(g
         return {'message':'Successfully registered user'}
 
 @auth_router.post('/login')
-async def login(email:str, password:str, session: Session = Depends(get_db)):
-    return
+async def login(loginschema:Login_schemas , session: Session = Depends(get_db)):
+    user = autenticate_user(
+        email    =loginschema.email, 
+        password =loginschema.password, 
+        session  =session
+        )
+    if not user:
+        raise HTTPException(status_code=400, detail='Failed to authenticate email or password')
+    else:
+        return {'message':'You logged'}
