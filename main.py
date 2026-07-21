@@ -1,9 +1,10 @@
 # para rodar o código, use o comando: uvicorn main:app --reload
 
 from fastapi import FastAPI
-from database import engine, Base
+from database import engine
 from passlib.context import CryptContext
 from dotenv import load_dotenv
+from models.base import Base
 import os
 
 load_dotenv()
