@@ -13,10 +13,10 @@ class Orders(Base):
 
     id       = Column(Integer, primary_key=True, autoincrement=True)
     status   = Column(String, ChoiceType(choices=STATUS_ORDERS))
-    user_id  = Column(Integer, ForeignKey('users.id'))
+    user_id  = Column(Integer, ForeignKey('users.id'), nullable=False)
     price    = Column(Float)
 
-    def __init__(self, user_id, price, status="PENDING"):
+    def __init__(self, user_id, price=0, status="PENDING"):
         self.status = status
         self.user_id = user_id
         self.price = price

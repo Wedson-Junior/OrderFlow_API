@@ -5,8 +5,8 @@ class OrderItems(Base):
     __tablename__ = 'order_items'
 
     id       = Column(Integer, primary_key=True, autoincrement=True)
-    order_id = Column(Integer, ForeignKey('orders.id'))
-    item_id  = Column(Integer, ForeignKey('items.id'))
+    order_id = Column(Integer, ForeignKey('orders.id'), nullable=False)
+    item_id  = Column(Integer, ForeignKey('items.id'), nullable=False)
     quantity = Column(Integer)
     price    = Column(Float)
 
