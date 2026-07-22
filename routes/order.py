@@ -17,5 +17,5 @@ async def make_order(orderschema : Orders_schemas, session : Session=Depends(get
         session.add(new_order)
         session.commit()
     except:
-        raise HTTPException(status_code=400, detail='Faild registered user')
+        raise HTTPException(status_code=400, detail='User not found')
     return {'message': 'Order created successfully'}
