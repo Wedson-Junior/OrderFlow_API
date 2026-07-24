@@ -1,71 +1,90 @@
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
-from models.users import Users
-from database import get_db
-from main import bcrypt_context, ACCESS_TOKEN_EXPIRE_MINUTES, ALGORITHM, SECRET_KEY
-from schemas.users import Users_schemas, Login_schemas
 from datetime import datetime, timedelta, timezone
-from jose import jwt, JWTError
+from jose import JWTError, jwt
+from passlib.context import CryptContext
+import os
+from dotenv import load_dotenv
+
+from database import get_db
+from models.users import Users
+from schemas.users import Users_schemas, Login_schemas
+
+load_dotenv()
 
 auth_router = APIRouter(prefix="/auth", tags=["auth"])
 
-def autenticate_user(email:str, password:str, session: Session):
-    user = session.query(Users).filter(Users.email==email).first()
-    if not user:
-        return False
-    
-    elif not user.active:
-        raise HTTPException(
-            status_code=403,
-            detail="User account disabled")
-    
-    elif not bcrypt_context.verify(password, user.password):
-        return False
-    
+SECRET_KEY = os.getenv('SECRET_KEY')
+ALGORITHM = os.getenv('ALGORITHM')
+ACCESS_TOKEN_EXPIRE_MINUTES = int(os.getenv('ACCESS_TOKEN_EXPIRE_MINUTES', 30))
+
+bcrypt_context = CryptContext(schemes=['bcrypt'], deprecated='auto')
+
+# ====================== Utility Functions ======================
+
+def verify_password(plain_password, hashed_password):
+    return bcrypt_context.verify(plain_password, hashed_password)
+
+def get_password_hash(password):
+    return bcrypt_context.hash(password)
+
+def create_access_token(data: dict):
+    to_encode = data.copy()
+    expire = datetime.now(timezone.utc) + timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
+    to_encode.update({"exp": expire})
+    return jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
+
+def get_current_user(token: str, db: Session = Depends(get_db)):
+    credentials_exception = HTTPException(
+        status_code=status.HTTP_401_UNAUTHORIZED,
+        detail="Could not validate credentials",
+        headers={"WWW-Authenticate": "Bearer"},
+    )
+    try:
+        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+        email: str = payload.get("sub")
+        if email is None:
+            raise credentials_exception
+    except JWTError:
+        raise credentials_exception
+
+    user = db.query(Users).filter(Users.email == email).first()
+    if user is None:
+        raise credentials_exception
     return user
 
-def create_token(user_id:int):
-    expriation_date = datetime.now(timezone.utc) + ACCESS_TOKEN_EXPIRE_MINUTES
-    info_disc = {'sub':user_id, 'exp': expriation_date}
-    encoded_jwt = jwt.encode(info_disc, SECRET_KEY, ALGORITHM)
-    return encoded_jwt
 
+# ====================== Routes ======================
+
+@auth_router.post("/register")
+def register(user: Users_schemas, db: Session = Depends(get_db)):
+    db_user = db.query(Users).filter(Users.email == user.email).first()
+    if db_user:
+        raise HTTPException(status_code=400, detail="Email already registered")
     
-@auth_router.get('/')
-async def home():
-    return {'message':'You are at the auth home'}
+    hashed_password = get_password_hash(user.password)
+    new_user = Users(
+        username=user.name,
+        email=user.email,
+        password=hashed_password,
+        active=user.active,
+        admin=user.admin
+    )
+    db.add(new_user)
+    db.commit()
+    db.refresh(new_user)
+    return {"message": "User created successfully"}
 
-@auth_router.post('/create_account')
-async def create_account(userschema: Users_schemas, session: Session = Depends(get_db)):
-    user = session.query(Users).filter(Users.email==userschema.email).first()
-    if user:
-        raise HTTPException(status_code=400, detail='Faild registered user')
-    else:
-        encrypted_password = bcrypt_context.hash(userschema.password)
-        new_user = Users(
-            username=userschema.name, 
-            email=userschema.email, 
-            password=encrypted_password,
-            active=userschema.active,
-            admin=userschema.admin
-            )
-        session.add(new_user)
-        session.commit()
-        return {'message':'Successfully registered user'}
 
-@auth_router.post('/login')
-async def login(loginschema:Login_schemas , session: Session = Depends(get_db)):
-    user = autenticate_user(
-        email    =loginschema.email, 
-        password =loginschema.password, 
-        session  =session
+@auth_router.post("/login")
+def login(login_data: Login_schemas, db: Session = Depends(get_db)):
+    user = db.query(Users).filter(Users.email == login_data.email).first()
+    
+    if not user or not verify_password(login_data.password, user.password):
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Incorrect email or password"
         )
-    if not user:
-        raise HTTPException(status_code=400, detail='Failed to authenticate email or password')
-    else:
-        access_token = create_token(user.id)
-        return {
-            'message':'You logged',
-            'token': access_token,
-            'token_type': 'Bearer'
-                }
+    
+    access_token = create_access_token(data={"sub": user.email})
+    return {"access_token": access_token, "token_type": "bearer"}
